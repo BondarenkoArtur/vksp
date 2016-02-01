@@ -1,4 +1,3 @@
-import threading
 from time import gmtime, strftime
 import os
 import sys
@@ -29,30 +28,33 @@ if sys.platform == 'win32':  # cause smiles brings exceptions
     os.system('chcp 65001')
 
 # Templates for messages
-MESSAGE_AUTHOR = "{cyan}{first_name} {last_name}{reset} == {green}(https://vk.com/id{bold}{red}{id}{reset}{green}){reset} == "
-FWD_MESSAGE_AUTHOR = "Repost {yellow}{first_name} {last_name}{reset} == {green}(https://vk.com/id{bold}{red}{id}{reset}{green}){reset}"
+MESSAGE_AUTHOR = "{cyan}{first_name} {last_name}{reset} == "
+FWD_MESSAGE_AUTHOR = "Repost {yellow}{first_name} {last_name}{reset}"
 
-# INSERT YOUR TOKEN https://oauth.vk.com/authorize?client_id=4171638&scope=343487&redirect_uri=https://oauth.vk.com/blank.html&response_type=token
+# INSERT YOUR TOKEN
+# https://oauth.vk.com/authorize?client_id=4171638&scope=343487
 session = vk.Session(access_token='')
 api = vk.API(session, v='5.44', lang='ru')
 
 
-def format(str, *args, **kw):  # own bycicles
+def format_by_template(string, *args, **kw):  # own bicycles
     buf = kw.copy() if kw else {}
     buf.update(formating)
-    return str.format(*args, **buf)
+    return string.format(*args, **buf)
 
-def say(str):
-    gs.main(str, lang='ru', sox_effects='')
 
-def printMessages(messages, outfile=sys.stdout):
+def say(string):
+    gs.main(string, lang='ru', sox_effects='')
+
+
+def print_messages(messages, outfile=sys.stdout):
     for mes in messages:
         if "from_id" in mes:
             user = api.users.get(user_ids=mes['from_id'])[0]
         else:
             user = api.users.get(user_ids=mes['user_id'])[0]
-        print(format(MESSAGE_AUTHOR, **user), end='', file=outfile)
-        say(format(MESSAGE_AUTHOR, **user))
+        print(format_by_template(MESSAGE_AUTHOR, **user), end='', file=outfile)
+        say(format_by_template(MESSAGE_AUTHOR, **user))
         print(mes_statuses[mes['read_state']], file=outfile)
         say(mes_statuses[mes['read_state']])
         print(mes['body'], file=outfile)
@@ -60,13 +62,13 @@ def printMessages(messages, outfile=sys.stdout):
         if 'fwd_messages' in mes:  # checking forwarded messages and attachment them
             for fwd_mes in mes['fwd_messages']:
                 fwd_user = api.users.get(user_ids=fwd_mes['user_id'])[0]
-                print(format(FWD_MESSAGE_AUTHOR, **fwd_user), file=outfile)
-                say(format(FWD_MESSAGE_AUTHOR, **fwd_user))
+                print(format_by_template(FWD_MESSAGE_AUTHOR, **fwd_user), file=outfile)
+                say(format_by_template(FWD_MESSAGE_AUTHOR, **fwd_user))
                 print(">>> {body}".format(**fwd_mes), file=outfile)
                 say(">>> {body}".format(**fwd_mes))
                 time.sleep(0.25)
         if 'attachments' in mes:
-            print(format("{yellow}{bold}Attachments:{reset}"), file=outfile)
+            print(format_by_template("{yellow}{bold}Attachments:{reset}"), file=outfile)
             attachments = ''
             for attach in mes['attachments']:
                 if 'wall' in attach:
@@ -74,7 +76,7 @@ def printMessages(messages, outfile=sys.stdout):
                     if 'text' in wall:
                         print("{text}".format(**wall), file=outfile)
                     if 'attachments' in wall:
-                        print(format("{yellow}{bold}Repost has attachments:{reset}"), file=outfile)
+                        print(format_by_template("{yellow}{bold}Repost has attachments:{reset}"), file=outfile)
                         elements = ''
                         for include in wall['attachments']:
                             elements += "{type}".format(**include) + ' '
@@ -83,32 +85,32 @@ def printMessages(messages, outfile=sys.stdout):
                     attachments += "{type}".format(**attach) + ' '
             print(attachments)
 
-        print(format("{bold}{0}{reset}", "=" * term_size))
+        print(format_by_template("{bold}{0}{reset}", "=" * term_size))
         time.sleep(0.25)
 
 
-def showUnreadDialogs(**kw):
+def show_unread_dialogs(**kw):
     dialogs = api.messages.getDialogs(unread='1')
-    printMessages([i['message'] for i in dialogs['items']])
+    print_messages([i['message'] for i in dialogs['items']])
 
 
-def showDialogs(**kw):
+def show_dialogs(**kw):
     dialogs = api.messages.getDialogs(**kw)
-    printMessages([i['message'] for i in dialogs['items']])
+    print_messages([i['message'] for i in dialogs['items']])
 
 
-def showDialog(**kw):
+def show_dialog(**kw):
     if 'user_id' in kw:
         messages = api.messages.getHistory(**kw)
-        printMessages(messages['items'][::-1])  # print reverted list (new below)
+        print_messages(messages['items'][::-1])  # print reverted list (new below)
 
 
-def showFriends(only_online=False, **kw):
-    if not "fields" in kw:
+def show_friends(only_online=False, **kw):
+    if "fields" not in kw:
         kw['fields'] = 'online'
     else:
         kw['fields'] += ", online"
-    if not "order" in kw:
+    if "order" not in kw:
         kw['order'] = 'hints'
     frs = api.friends.get(**kw)['items']
     if only_online:
@@ -117,20 +119,20 @@ def showFriends(only_online=False, **kw):
 
     for i, fr in enumerate(frs):
         if fr['online']:
-            print(format("{green}[{0}][✔]", str(i+1).zfill(max_no_symbs)), end=" ")
+            print(format_by_template("{green}[{0}][✔]", str(i + 1).zfill(max_no_symbs)), end=" ")
         else:
-            print(format("[{0}][✖]", str(i+1).zfill(max_no_symbs)), end=" ")
+            print(format_by_template("[{0}][✖]", str(i + 1).zfill(max_no_symbs)), end=" ")
         print("{first_name} {last_name} (https://vk.com/id{id})".format(**fr), end="")
-        print(format("{reset}"))
+        print(format_by_template("{reset}"))
 
 
-def sendMessage(**kw):
+def send_message(**kw):
     if 'user_id' in kw:
         user = api.users.get(user_ids=kw['user_id'], name_case='dat')[0]
         print("Send message to {first_name} {last_name}".format(**user))
     else:
         user_id = input("User ID: ")
-        sendMessage(user_id=user_id)
+        send_message(user_id=user_id)
         return
     if 'message' not in kw:
         message = input("Type msg: ")
@@ -141,22 +143,23 @@ def sendMessage(**kw):
     if 'user_id' in kw:
         yn = input("Open dialog with user? [y,т/n,н][n]: ")
         if 'yes' in yn.lower() or 'y' in yn.lower() or 'т' in yn.lower() or 'так' in yn.lower():
-            showDialog(count=10, user_id=kw['user_id'])
+            show_dialog(count=10, user_id=kw['user_id'])
 
 
-def currentTime():
-    time = strftime("%H:%M", gmtime())
-    say(time)
+def current_time():
+    cur_time = strftime("%H:%M", gmtime())
+    say(cur_time)
     pass
 
 
-def compareToCommands(value):
-    if value.find("message") != -1:
-        showUnreadDialogs()
+def compare_with_cmds(string):
+    if string.find("message") != -1:
+        show_unread_dialogs()
         pass
-    if value.find("time") != -1:
-        currentTime()
+    if string.find("time") != -1:
+        current_time()
         pass
+
 
 r = sr.Recognizer()
 m = sr.Microphone()
@@ -173,11 +176,11 @@ try:
             try:
                 # recognize speech using Google Speech Recognition
                 value = r.recognize_google(audio)
-                compareToCommands(value)
+                compare_with_cmds(value)
                 # we need some special handling here to correctly print unicode characters to standard output
-                if str is bytes: # this version of Python uses bytes for strings (Python 2)
+                if str is bytes:  # this version of Python uses bytes for strings (Python 2)
                     print(u"You said {}".format(value).encode("utf-8"))
-                else: # this version of Python uses unicode for strings (Python 3+)
+                else:  # this version of Python uses unicode for strings (Python 3+)
                     print("You said {}".format(value))
             except sr.UnknownValueError:
                 print("Oops! Didn't catch that")
